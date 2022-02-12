@@ -5,7 +5,7 @@ const reviewModel = require('../models/reviewModel')
 const validateDate = require("validate-date");
 
 //creating book
-const bookCreation = async function(req, res) {
+const bookCreation = async function (req, res) {
     try {
         let requestBody = req.body;
         const { title, excerpt, userId, ISBN, category, subcategory, releasedAt } = requestBody
@@ -38,11 +38,11 @@ const bookCreation = async function(req, res) {
         };
         if (!validator.isValidObjectId(userId)) {
             return res.status(400).send({ status: false, message: `Invalid userId.` })
-        }
-
+        };
+        // Date Format 
         if (!validateDate(releasedAt, responseType = "boolean")) {
             return res.status(400).send({ status: false, message: `Invalid date format. Please provide date as 'YYYY-MM-DD'.` })
-        }
+        };
         //validation ends.
 
         //searching title & ISBN in database to maintain their uniqueness.
@@ -76,7 +76,7 @@ const bookCreation = async function(req, res) {
 }
 
 //fetching all books.
-const fetchAllBooks = async function(req, res) {
+const fetchAllBooks = async function (req, res) {
     try {
         const queryParams = req.query
         const {
@@ -85,28 +85,25 @@ const fetchAllBooks = async function(req, res) {
             subcategory
         } = queryParams
 
-        //Validation for invalid userId in params
-        if (!validator.validatingInvalidObjectId(userId)) {
-            return res.status(400).send({ status: false, message: "Invalid userId in params." })
-        }
+        const filterQuery = { isDeleted: false }
 
         //Combinations of query params.
         if (userId || category || subcategory) {
 
-            let obj = {};
-            if (userId) {
-                obj.userId = userId
+            if (validator.isValid(userId) && validator.isValidObjectId(userId)) {
+                filterQuery['userId'] = userId
             }
-            if (category) {
-                obj.category = category;
+
+            if (validator.isValid(category)) {
+                filterQuery['category'] = category.trim()
             }
-            if (subcategory) {
-                obj.subcategory = subcategory
+
+            if (validator.isValid(subcategory)) {
+                filterQuery['subCategory'] = subcategory.trim()
             }
-            obj.isDeleted = false
 
             //Authorizing user --> If not then won't be able to fetch books of someone else's.
-            const check = await bookModel.findOne(obj)
+            const check = await bookModel.findOne(filterQuery)
             if (check) {
                 if (check.userId != req.userId) {
                     return res.status(403).send({
@@ -117,7 +114,7 @@ const fetchAllBooks = async function(req, res) {
             }
 
             //Searching books according to the request 
-            let books = await bookModel.find(obj).select({ subcategory: 0, ISBN: 0, isDeleted: 0, updatedAt: 0, createdAt: 0, __v: 0 }).sort({
+            let books = await bookModel.find(filterQuery).select({ subcategory: 0, ISBN: 0, isDeleted: 0, updatedAt: 0, createdAt: 0, __v: 0 }).sort({
                 title: 1
             });
             const countBooks = books.length
@@ -137,7 +134,7 @@ const fetchAllBooks = async function(req, res) {
 }
 
 //Fetching books by their Id.
-const fetchBooksById = async function(req, res) {
+const fetchBooksById = async function (req, res) {
     try {
         const params = req.params.bookId
 
@@ -147,7 +144,7 @@ const fetchBooksById = async function(req, res) {
         }
 
         //Finding the book in DB by its Id & an attribute isDeleted:false
-        const findBook = await bookModel.findOne({
+        const findBook = await bookModel.findById({
             _id: params,
             isDeleted: false
         })
@@ -193,7 +190,7 @@ const fetchBooksById = async function(req, res) {
 }
 
 //Update books details.
-const updateBookDetails = async function(req, res) {
+const updateBookDetails = async function (req, res) {
     try {
         const params = req.params.bookId
         const requestUpdateBody = req.body
@@ -207,29 +204,10 @@ const updateBookDetails = async function(req, res) {
         if (!validator.isValidObjectId(params)) {
             return res.status(400).send({ status: false, message: "Invalid bookId." })
         }
-
         if (!validator.isValidRequestBody(requestUpdateBody)) {
             return res.status(400).send({ status: false, message: 'Invalid request parameters. Please provide book details to update.' })
         }
         //validation ends
-
-        //setting the combinations for the updatation.
-        if (title || excerpt || ISBN || releasedAt) {
-
-            //validation for empty strings/values.
-            if (!validator.validString(title)) {
-                return res.status(400).send({ status: false, message: "Title is missing ! Please provide the title details to update." })
-            }
-            if (!validator.validString(excerpt)) {
-                return res.status(400).send({ status: false, message: "Excerpt is missing ! Please provide the Excerpt details to update." })
-            };
-            if (!validator.validString(ISBN)) {
-                return res.status(400).send({ status: false, message: "ISBN is missing ! Please provide the ISBN details to update." })
-            };
-            if (!validator.validString(releasedAt)) {
-                return res.status(400).send({ status: false, message: "Released date is missing ! Please provide the released date details to update." })
-            };
-        } //validation ends.
 
         //searching book in which we want to update the details.
         const searchBook = await bookModel.findById({
@@ -247,6 +225,27 @@ const updateBookDetails = async function(req, res) {
             })
         }
 
+        //setting the combinations for the updatation.
+        if (title || excerpt || ISBN || releasedAt) {
+
+            //validation for empty strings/values.
+            if (!validator.validString(title)) {
+                return res.status(400).send({ status: false, message: "Title is missing ! Please provide the title details to update." })
+            }
+            if (!validator.validString(excerpt)) {
+                return res.status(400).send({ status: false, message: "Excerpt is missing ! Please provide the Excerpt details to update." })
+            };
+            if (!validator.validString(ISBN)) {
+                return res.status(400).send({ status: false, message: "ISBN is missing ! Please provide the ISBN details to update." })
+            };
+            if (!validator.validString(releasedAt)) {
+                return res.status(400).send({ status: false, message: "Released date is missing ! Please provide the released date details to update." })
+            };
+            if (!validateDate(releasedAt, responseType = "boolean")) {
+                return res.status(400).send({ status: false, message: `Invalid date format. Please provide date as 'YYYY-MM-DD'.` })
+            }
+        } //validation ends.
+
         //finding title and ISBN in DB to maintain their uniqueness.
         const findTitle = await bookModel.findOne({ title: title, isDeleted: false })
         if (findTitle) {
@@ -257,7 +256,7 @@ const updateBookDetails = async function(req, res) {
             return res.status(400).send({ status: false, message: `${ISBN.trim()} is already registered.` })
         }
 
-        //checcking the attribute isDeleted:false, then only the user is allowed to update.
+        //checcking the attribute isDeleted:false, then only the non deleted book is allowed to update.
         if (searchBook.isDeleted == false) {
             const changeDetails = await bookModel.findOneAndUpdate({ _id: params }, { title: title, excerpt: excerpt, releasedAt: releasedAt, ISBN: ISBN }, { new: true })
 
@@ -271,7 +270,7 @@ const updateBookDetails = async function(req, res) {
 }
 
 //deleting an existing book.
-const deleteBook = async function(req, res) {
+const deleteBook = async function (req, res) {
     try {
         const params = req.params.bookId; //accessing the bookId from the params.
 
@@ -287,18 +286,18 @@ const deleteBook = async function(req, res) {
             return res.status(404).send({ status: false, message: `No book found by ${params}` })
         }
         //Authorizing the user -> if the user doesn't created the book, He/she won't be able to delete it.
-        else if (findBook.userId != req.userId) {
+        if (findBook.userId != req.userId) {
             return res.status(403).send({
                 status: false,
                 message: "Unauthorized access."
             })
         }
         //if the attribute isDeleted:true , then it is already deleted.
-        else if (findBook.isDeleted == true) {
+        if (findBook.isDeleted == true) {
             return res.status(400).send({ status: false, message: `Book has been already deleted.` })
         } else {
             //is ttribute isDeleted:false, then change the isDeleted flag to true, and remove all the reviews of the book as well.
-            const deleteData = await bookModel.findOneAndUpdate({ _id: { $in: findBook } }, { $set: { isDeleted: true, deletedAt: new Date() } }, { new: true }).select({ _id: 1, title: 1, isDeleted: 1, deletedAt: 1 })
+            const deleteData = await bookModel.findOneAndUpdate({ _id: findBook._id }, { $set: { isDeleted: true, deletedAt: new Date() } }, { new: true }).select({ _id: 1, title: 1, isDeleted: 1, deletedAt: 1 })
 
             await reviewModel.updateMany({ bookId: params }, { isDeleted: true, deletedAt: new Date() })
             return res.status(200).send({ status: true, message: "Book deleted successfullly.", data: deleteData })

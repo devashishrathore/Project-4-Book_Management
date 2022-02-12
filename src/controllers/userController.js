@@ -4,7 +4,7 @@ const validator = require('../validators/validator')
 
 
 //Registering users
-const userCreation = async function(req, res) {
+const userCreation = async function (req, res) {
     try {
         const requestBody = req.body;
         const { //Object destructuring
@@ -51,6 +51,10 @@ const userCreation = async function(req, res) {
             if (!validator.validString(address.pincode)) {
                 return res.status(400).send({ status: false, message: "Pincode cannot be empty." })
             }
+            //validating pincode for shipping.
+            if (!/^[1-9][0-9]{5}$/.test(address.pincode)) {
+                return res.status(400).send({ status: false, message: `${address.pincode} is Invalid Pincode for address` })
+            }
         }
         //validation end.
 
@@ -89,7 +93,7 @@ const userCreation = async function(req, res) {
 }
 
 //User login.
-const loginUser = async function(req, res) {
+const loginUser = async function (req, res) {
     try {
         const requestBody = req.body;
         const { email, password } = requestBody //object destructuring
@@ -121,15 +125,15 @@ const loginUser = async function(req, res) {
         const id = findEmail._id //saving userId by sarching the email & password of the specified user.
 
         //Generating token by the userId
-        const token = await jwt.sign({
-            userId: findEmail._id,
+        const token = jwt.sign({
+            userId: id,
             iat: Math.floor(Date.now() / 1000), //time of issuing the token.
             exp: Math.floor(Date.now() / 1000) + 60 * 30 //setting token expiry time limit.
         }, 'group7')
 
         //setting token in response header.
         res.header('x-api-key', token);
-        return res.status(200).send({ status: true, message: `User logged in successfully.` });
+        return res.status(200).send({ status: true, message: `User logged in successfully.`, DATA: { token } });
     } catch (err) {
         return res.status(500).send({ status: false, message: "Something went wrong", Error: err.message })
     }

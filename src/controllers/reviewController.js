@@ -3,7 +3,7 @@ const validator = require('../validators/validator')
 const bookModel = require('../models/bookModel')
 
 //Adding review for a specific book.
-const addReview = async function(req, res) {
+const addReview = async function (req, res) {
     try {
         const params = req.params.bookId //accessing bookId from params.
         requestReviewBody = req.body
@@ -21,7 +21,6 @@ const addReview = async function(req, res) {
         if (!isNaN(reviewedBy)) {
             return res.status(400).send({ status: false, message: "Reviewer's name cannot be a number." })
         }
-
         if (!validator.validString(reviewedBy)) {
             return res.status(400).send({ status: false, message: "Reviewer's name is required" })
         }
@@ -71,7 +70,7 @@ const addReview = async function(req, res) {
 }
 
 //Updating an existing review.
-const updateReview = async function(req, res) {
+const updateReview = async function (req, res) {
     try {
         const bookParams = req.params.bookId;
         const reviewParams = req.params.reviewId
@@ -103,18 +102,18 @@ const updateReview = async function(req, res) {
         //finding book and review on which we have to update.
         const searchBook = await bookModel.findById({ _id: bookParams })
         if (!searchBook) {
-            return res.status(404).send({ status: false, message: `Book does not exist by this ${bookParams }. ` })
+            return res.status(404).send({ status: false, message: `Book does not exist by this ${bookParams}. ` })
         }
         const searchReview = await reviewModel.findById({ _id: reviewParams })
         if (!searchReview) {
             return res.status(404).send({
                 status: false,
-                message: `Review does not exist by this ${reviewParams }.`
+                message: `Review does not exist by this ${reviewParams}.`
             })
         }
 
         //checking whether the rating is number or character.
-        if (typeof(rating) === 'number') {
+        if (typeof (rating) === 'number') {
             if (req.body.rating === 0) {
                 return res.status(400).send({ status: false, message: "Rating cannot be 0. Please provide rating between 1 to 5." })
             }
@@ -144,7 +143,7 @@ const updateReview = async function(req, res) {
 }
 
 //Deleting an existing review.
-const deleteReview = async function(req, res) {
+const deleteReview = async function (req, res) {
     try {
         const bookParams = req.params.bookId;
         const reviewParams = req.params.reviewId
@@ -161,13 +160,13 @@ const deleteReview = async function(req, res) {
         //finding book and checking whether it is deleted or not.
         const searchBook = await bookModel.findById({ _id: bookParams, isDeleted: false })
         if (!searchBook) {
-            return res.status(400).send({ status: false, message: `Book does not exist by this ${bookParams }.` })
+            return res.status(400).send({ status: false, message: `Book does not exist by this ${bookParams}.` })
         }
 
         //finding review and checking whether it is deleted or not.
         const searchReview = await reviewModel.findById({ _id: reviewParams })
         if (!searchReview) {
-            return res.status(400).send({ status: false, message: `Review does not exist by this ${reviewParams }.` })
+            return res.status(400).send({ status: false, message: `Review does not exist by this ${reviewParams}.` })
         }
 
         //verifying the attribute isDeleted:false or not for both books and reviews documents.
